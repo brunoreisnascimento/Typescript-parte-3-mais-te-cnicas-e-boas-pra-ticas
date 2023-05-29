@@ -6,6 +6,8 @@ import { Negociacao } from '../models/negociacao.js';
 import { Negociacoes } from '../models/negociacoes.js';
 import { MensagemView } from '../views/mensagem-view.js';
 import { NegociacoesView } from '../views/negociacoes-view.js';
+import { NegociacoesService } from '../services/negociacoes-service.js';
+import { imprimir } from '../utils/imprimir.js';
 
 export class NegociacaoController {    
     @domInjector("#data")
@@ -17,6 +19,7 @@ export class NegociacaoController {
     private negociacoes = new Negociacoes();
     private negociacoesView = new NegociacoesView('#negociacoesView');
     private mensagemView = new MensagemView('#mensagemView');
+    private negociacaoService = new NegociacoesService();
 
     constructor() {
         this.negociacoesView.update(this.negociacoes);
@@ -26,7 +29,7 @@ export class NegociacaoController {
     @logarTempoDeExecucao(true)
     public adiciona(): void {
         /*
-            Zé, você já viu isso?
+            Este comentário não é exibido no html
         */
         const negociacao = Negociacao.criaDe(
             this.inputData.value, 
@@ -39,10 +42,29 @@ export class NegociacaoController {
                 .update('Apenas negociações em dias úteis são aceitas');
             return ;
         }
-
         this.negociacoes.adiciona(negociacao);
+        imprimir(negociacao, this.negociacoes);
         this.limparFormulario();
         this.atualizaView();
+    }
+
+    public importaDados(): void{
+        this.negociacaoService.ObterNegociacoesDoDia()
+        .then(negociacoesHoje => {
+            return negociacoesHoje.filter(negociacoesHoje => {
+                return !this.negociacoes
+                .lista()
+                .some(negociacao => negociacao
+                        .ehIgual(negociacoesHoje)
+                    );
+            });
+        })
+        .then(negociacoesHoje => {
+            for (let negociacao of negociacoesHoje) {
+                this.negociacoes.adiciona(negociacao);
+            }
+            this.negociacoesView.update(this.negociacoes);
+        });
     }
 
     private ehDiaUtil(data: Date) {
